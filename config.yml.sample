@@ -1,0 +1,8 @@
+bucket: "bucketname"
+secret_key: "secret",
+access_key: "access",
+endpoint_url: "https://region.aws.com"
+
+[encryption]
+algo: ""
+key: ""
