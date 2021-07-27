@@ -1,8 +1,10 @@
-bucket: "bucketname"
-secret_key: "secret",
-access_key: "access",
-endpoint_url: "https://region.aws.com"
+; remember, no quote needed.
+[credentials]
+bucket: bucketname
+secret_key: secret
+access_key: access
+endpoint_url: https://region.aws.com
 
 [encryption]
-algo: ""
-key: ""
+algo: your algo 
+key: your secret random key
