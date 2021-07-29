@@ -3,6 +3,9 @@
 import os
 import sys
 import configparser
+import ntpath
+from urllib import parse
+import re
 
 # third parties module
 import boto3
@@ -29,17 +32,56 @@ class S3Client:
         config.read(config_path)
         return config
     
-    def upload(self, fin, fout, w_encrypt=False, w_public=False):
-        pass
-
-    def download(self, fout, fin, w_encrypt=False):
-        if w_encrypt:
+    def _get_encrypt_param(self, enabled=False):
+        if enabled:
             encrypt_args = {
                     "SSECustomerKey": self.config['encryption']['key'],
                     "SSECustomerAlgorithm": self.config['encryption']['algo']
                 }
         else:
             encrypt_args = {}
+        return encrypt_args
+
+    def upload(self, fin, fout=None, w_encrypt=False, w_public=False):
+        encrypt_args = self._get_encrypt_param(w_encrypt)
+        if w_public:
+            ACL='public-read'
+        else:
+            ACL='private'
+
+        # get filename in case fout is none
+        # source: https://stackoverflow.com/questions/8384737/extract-file-name-from-path-no-matter-what-the-os-path-format
+        if fout is None:
+            head, tail = ntpath.split(fin)
+            fout = tail or ntpath.basename(head)
+
+        try:
+            response = self.client.upload_file(
+                Filename=fin,
+                Bucket=self.config['credentials']['bucket'],
+                Key=fout,
+                ExtraArgs = {**encrypt_args, 'ACL': ACL}
+            )
+        except ClientError as e:
+            print(e)
+        else:
+            print("Upload successfull")
+
+
+        if w_public:
+            # adding bucket name before host name
+            addr = re.sub(
+                        r"https\://", 
+                        r"https://" + self.config['credentials']['bucket'] + r".", 
+                        self.config['credentials']['endpoint_url']
+                    )
+            return parse.urljoin(addr, parse.quote(fout))
+        else:
+            return None
+                    
+
+    def download(self, fout, fin, w_encrypt=False):
+        encrypt_args = self._get_encrypt_param(w_encrypt)
 
         try:
             response = self.client.download_file(
@@ -77,4 +119,7 @@ if __name__ == "__main__":
     client = S3Client('config.yml')
     fouts = client.list()
     print("\n".join([o['Key'] for o in fouts]))
-    client.download(fouts[0]['Key'], fouts[1]['Key'], w_encrypt=True)
+    # client.download(fouts[0]['Key'], fouts[1]['Key'], w_encrypt=True)
+
+    url = client.upload('/home/pi/sample.jpeg', fout='this is sample.jpg', w_public=True)
+    print(url)
