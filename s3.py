@@ -80,8 +80,12 @@ class S3Client:
             return None
                     
 
-    def download(self, fout, fin, w_encrypt=False):
+    def download(self, fout, fin=None, w_encrypt=False):
         encrypt_args = self._get_encrypt_param(w_encrypt)
+
+        if fin is None:
+            head, tail = ntpath.split(fout)
+            fin = tail or ntpath.basename(head)
 
         try:
             response = self.client.download_file(
@@ -116,10 +120,15 @@ class S3Client:
         return fouts
 
 if __name__ == "__main__":
-    client = S3Client('config.yml')
+    client = S3Client('config.idcloudhost.yml')
     fouts = client.list()
-    print("\n".join([o['Key'] for o in fouts]))
-    # client.download(fouts[0]['Key'], fouts[1]['Key'], w_encrypt=True)
 
-    url = client.upload('/home/pi/sample.jpeg', fout='this is sample.jpg', w_public=True)
-    print(url)
+    # test list
+    print("\n".join([o['Key'] for o in fouts]))
+
+    # test download
+    # client.download(fouts[0]['Key'])
+
+    # test upload
+    # url = client.upload('/home/pi/sample.jpeg', fout='this is sample.jpg', w_public=True)
+    # print(url)
