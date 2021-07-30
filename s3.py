@@ -68,17 +68,13 @@ class S3Client:
             print("Upload successfull")
 
 
-        if w_public:
-            # adding bucket name before host name
-            addr = re.sub(
-                        r"https\://", 
-                        r"https://" + self.config['credentials']['bucket'] + r".", 
-                        self.config['credentials']['endpoint_url']
-                    )
-            return parse.urljoin(addr, parse.quote(fout))
-        else:
-            return None
-                    
+        # adding bucket name before host name
+        addr = re.sub(
+                    r"https\://", 
+                    r"https://" + self.config['credentials']['bucket'] + r".", 
+                    self.config['credentials']['endpoint_url']
+                )
+        return parse.urljoin(addr, parse.quote(fout))
 
     def download(self, fout, fin=None, w_encrypt=False):
         encrypt_args = self._get_encrypt_param(w_encrypt)
@@ -100,7 +96,16 @@ class S3Client:
             print("Download successfull")
 
     def delete(self, fout):
-        pass
+        try:
+            self.client.delete_object(
+                Bucket=self.config['credentials']['bucket'],
+                Key=fout
+            )
+        except ClientError as e:
+            print (e)
+        else:
+            print("Delete successfull")
+
 
     def move(self, fout_src, fout_tgt):
         pass
@@ -110,7 +115,7 @@ class S3Client:
         assert response['ResponseMetadata']['HTTPStatusCode'] == 200,\
                 'List object failed, {}'.format(response)
 
-        for obj in response['Contents']:
+        for obj in response.get('Contents', []):
             yield obj
 
     def list(self, pattern=None):
@@ -130,5 +135,9 @@ if __name__ == "__main__":
     # client.download(fouts[0]['Key'])
 
     # test upload
-    # url = client.upload('/home/pi/sample.jpeg', fout='this is sample.jpg', w_public=True)
+    # url = client.upload('/home/pi/sample.jpeg', fout='encrypt.jpg', w_public=True, w_encrypt=True)
     # print(url)
+
+    # test delete
+    print("Delete {}".format(fouts[-1]['Key']))
+    client.delete(fouts[-1]['Key'])
