@@ -42,6 +42,16 @@ class S3Client:
             encrypt_args = {}
         return encrypt_args
 
+    def _get_url(self, fout):
+        # adding bucket name before host name
+        addr = re.sub(
+                    r"https\://", 
+                    r"https://" + self.config['credentials']['bucket'] + r".", 
+                    self.config['credentials']['endpoint_url']
+                )
+        return parse.urljoin(addr, parse.quote(fout))
+
+
     def upload(self, fin, fout=None, w_encrypt=False, w_public=False):
         encrypt_args = self._get_encrypt_param(w_encrypt)
         if w_public:
@@ -64,17 +74,11 @@ class S3Client:
             )
         except ClientError as e:
             print(e)
+            sys.exit()
         else:
             print("Upload successfull")
 
-
-        # adding bucket name before host name
-        addr = re.sub(
-                    r"https\://", 
-                    r"https://" + self.config['credentials']['bucket'] + r".", 
-                    self.config['credentials']['endpoint_url']
-                )
-        return parse.urljoin(addr, parse.quote(fout))
+        return self._get_url(fout)
 
     def download(self, fout, fin=None, w_encrypt=False):
         encrypt_args = self._get_encrypt_param(w_encrypt)
@@ -92,6 +96,7 @@ class S3Client:
             )
         except ClientError as e:
             print(e)
+            sys.exit()
         else:
             print("Download successfull")
 
@@ -103,12 +108,31 @@ class S3Client:
             )
         except ClientError as e:
             print (e)
+            sys.exit()
         else:
             print("Delete successfull")
 
 
     def move(self, fout_src, fout_tgt):
-        pass
+        # we can't rename an object, so we have to copy and delete the old one
+        try:
+            response = self.client.copy_object(
+                    Bucket=self.config['credentials']['bucket'],
+                    CopySource={'Bucket': self.config['credentials']['bucket'], 'Key': fout_src},
+                    Key=fout_tgt
+                )
+
+            assert response['ResponseMetadata']['HTTPStatusCode'] == 200,\
+                    'Copy object failed: {}'.format(response)
+
+            self.delete(fout_src)
+
+        except Exception as e:
+            print(e)
+            sys.exit()
+
+        else:
+            print ("Move Successfull")
 
     def iter(self, pattern=None):
         response = self.client.list_objects_v2(Bucket=self.config['credentials']['bucket'])
@@ -125,7 +149,7 @@ class S3Client:
         return fouts
 
 if __name__ == "__main__":
-    client = S3Client('config.idcloudhost.yml')
+    client = S3Client('config.yml')
     fouts = client.list()
 
     # test list
@@ -135,9 +159,14 @@ if __name__ == "__main__":
     # client.download(fouts[0]['Key'])
 
     # test upload
-    # url = client.upload('/home/pi/sample.jpeg', fout='encrypt.jpg', w_public=True, w_encrypt=True)
+    # url = client.upload('./sample.jpeg', fout='sample.jpg', w_public=True)
     # print(url)
 
+    # test rename
+    # rename = client.move('sample_renamed.jpg', 'sample.jpg')
+    # print(client._get_url('sample.jpg'))
+
     # test delete
-    print("Delete {}".format(fouts[-1]['Key']))
-    client.delete(fouts[-1]['Key'])
+    # deleted_file = 'sample.jpg'
+    # print("Delete {}".format(deleted_file))
+    # client.delete(deleted_file)
