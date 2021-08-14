@@ -11,6 +11,10 @@ import re
 import boto3
 from botocore.exceptions import ClientError
 
+# local module
+from util import get_logger
+logger = get_logger ('s3')
+
 
 class S3Client:
     """
@@ -20,12 +24,14 @@ class S3Client:
     """
 
     def __init__(self, config_path):
+        logger.debug('Initiate connection')
         self.config = self._load_config(config_path)
         self.client = boto3.client("s3", 
                     aws_access_key_id=self.config['credentials']['secret_key'],
                     aws_secret_access_key=self.config['credentials']['access_key'],
                     endpoint_url=self.config['credentials']['endpoint_url']
                 )
+        logger.debug('.. Done')
 
     def _load_config(self, config_path):
         config = configparser.ConfigParser()
@@ -53,6 +59,8 @@ class S3Client:
 
 
     def upload(self, fin, fout=None, w_encrypt=False, w_public=False):
+        logger.info('Uploading {}'.format(fin))
+
         encrypt_args = self._get_encrypt_param(w_encrypt)
         if w_public:
             ACL='public-read'
@@ -73,14 +81,18 @@ class S3Client:
                 ExtraArgs = {**encrypt_args, 'ACL': ACL}
             )
         except ClientError as e:
-            print(e)
+            logger.error('Failed!')
+            logger.error(e)
             sys.exit()
         else:
-            print("Upload successfull")
+            logger.debug("Upload successfull")
 
+        logger.info('.. Done')
         return self._get_url(fout)
 
     def download(self, fout, fin=None, w_encrypt=False):
+        logger.info('Downloading {}'.format(fout))
+
         encrypt_args = self._get_encrypt_param(w_encrypt)
 
         if fin is None:
@@ -95,25 +107,34 @@ class S3Client:
                 ExtraArgs = encrypt_args
             )
         except ClientError as e:
-            print(e)
+            logger.error('Failed!')
+            logger.error(e)
             sys.exit()
         else:
-            print("Download successfull")
+            logger.debug("Download successfull")
+
+        logger.info('.. Done')
 
     def delete(self, fout):
+        logger.info('Deleting {}'.format(fout))
         try:
             self.client.delete_object(
                 Bucket=self.config['credentials']['bucket'],
                 Key=fout
             )
         except ClientError as e:
-            print (e)
+            logger.error('Failed!')
+            logger.error(e)
             sys.exit()
         else:
-            print("Delete successfull")
+            logger.debug("Delete successfull")
+
+        logger.info('.. Done')
 
 
     def move(self, fout_src, fout_tgt):
+        logger.info('Moving {} to {}'.format(fout_src, fout_tgt))
+
         # we can't rename an object, so we have to copy and delete the old one
         try:
             response = self.client.copy_object(
@@ -128,11 +149,14 @@ class S3Client:
             self.delete(fout_src)
 
         except Exception as e:
-            print(e)
+            logger.error('Failed!')
+            logger.error(e)
             sys.exit()
 
         else:
-            print ("Move Successfull")
+            logger.debug ("Move Successfull")
+
+        logger.info('.. Done')
 
     def iter(self, pattern=None):
         response = self.client.list_objects_v2(Bucket=self.config['credentials']['bucket'])
@@ -154,9 +178,10 @@ if __name__ == "__main__":
 
     # test list
     print("\n".join([o['Key'] for o in fouts]))
+    # print(client._get_url('image/tux.png'))
 
     # test download
-    # client.download(fouts[0]['Key'])
+    client.download(fouts[0]['Key'])
 
     # test upload
     # url = client.upload('./sample.jpeg', fout='sample.jpg', w_public=True)
