@@ -3,30 +3,145 @@
 import os
 import sys
 import json
+import subprocess
+import shlex
+import shutil
+import re
 
 # third parties module
 import nbformat
 
 # local module
+path_this = os.path.abspath(os.path.dirname(__file__))
 from util import get_logger
 logger = get_logger ('note')
 
 
 class Note(object):
+    default_config = {
+            # working directory (export, regexes, etc)
+            'tmp_dir':  '.tmp',
+            # temporary output prefix name, use for --output in nbconvert
+            'tmp_output': 'out',
+            # base path for referencing local image. If we have image ../../a.png,
+            # the exact file will depend on the location we start the notebook. 
+            # this is that location. The default will be terminal current location
+            'base_path_note': '.'
+
+    }
 
     def __init__(self, s3_client, config={}):
-        pass
+        self.config = Note.default_config
+        self.config.update(config)
 
-    def _upload(self, obj):
-        pass
+        self.s3_client = s3_client
 
-    def _replace_url(self, cell, obj):
-        pass
+    def upload(self, src, s3_prefix=''):
+        tgt = s3_prefix + os.path.basename(src)
+        tgt_link = self.s3_client.upload(src, tgt, w_public=True)
+        return tgt_link
 
-    def convert(self, fnote):
-        result = self.test_validity(fnote)
-        print(result)
+    def replace_url(self, content, src, target):
+        return re.sub (re.escape (src), target, content)
 
+    def list_img(self, md_content):
+        # regex image pattern
+        img = re.findall (r'\!\[.*\]\((.*?)\)', md_content)
+        logger.debug('Found {} images'.format(len(set(img))))
+
+        img_status = []
+        for i in set(img): # to prevent the same image replaced twice
+            # check for web links
+            if "http" in i or "www" in i: 
+                img_type = 'web'
+            # all files in out_files are generated
+            elif i.startswith (self.config['tmp_output'] + '_files'):
+                img_type = 'generated'
+            else:
+                img_type = 'local'
+
+            img_status.append({
+                'link': i,
+                'type': img_type
+            })
+            logger.debug('img: {}, type: {}'.format(i, img_type))
+        return img_status
+
+    def convert(self, fnote, fmd=None, s3_prefix=''):
+        logger.info('Converting {}'.format(fnote))
+
+        logger.debug('Validity check')
+        valid_status = self.test_validity(fnote)
+        if valid_status['status'] != 1:
+            raise Exception(valid_status['reason'])
+
+        try:
+            # call nb convert command to convert
+            logger.debug('Calling nbconvert')
+            cmd = ["jupyter-nbconvert",  
+                    shlex.quote (fnote), 
+                    "--to=markdown", 
+                    "--output={}".format(self.config['tmp_output']),
+                    "--output-dir={}".format (self.config['tmp_dir'])
+                ]
+            status = subprocess.run(cmd)
+            logger.debug("Return code: {}".format(status.returncode))
+
+            assert status.returncode==0, "nbconvert process failed"
+
+            # open the output, and list the image in there
+            with open(os.path.join(self.config['tmp_dir'], "out.md")) as f_:
+                content = f_.read()
+                images = self.list_img(content)
+
+                # upload the local and generated images only
+                for i in images:
+                    if i['type'] == 'web':
+                        continue
+                    elif i['type'] == 'generated':
+                        img_path = os.path.join(self.config['tmp_dir'], i['link'])
+                    else:
+                        img_path = os.path.join(self.config['base_path_note'], i['link'])
+
+                    assert os.path.isfile(img_path) is True, \
+                            'File {} can\'t be found!'.format(img_path)
+
+                    logger.debug("Uploading {}".format(img_path))
+                    img_s3_link = self.upload(img_path, s3_prefix)
+
+                    logger.debug("Replacing URL {}".format(img_path))
+                    content = self.replace_url(content, i['link'], img_s3_link)
+
+            # dumping content to final output
+            if fmd is None:
+                # default fmd is current notes with changing extension
+                base = os.path.splitext(os.path.basename(fnote))[0]
+                fmd = base + '.md'
+
+            logger.debug('Write to {}'.format(fmd))
+            with open (fmd, 'w') as f_:
+                f_.write(content)
+
+            logger.info("Success!")
+
+
+        except Exception as e:
+            logger.error("Failed!")
+            logger.error(e)
+
+        finally:
+            self.cleanup()
+
+
+    def cleanup (self):
+        # remove tmp folder
+        logger.debug("Removing {}".format(self.config['tmp_dir']))
+        try:
+           shutil.rmtree (self.config['tmp_dir'])
+        except Exception as e:
+            logger.error("Exception found!")
+            logger.error(e)
+            raise e
 
     def test_validity(self, fnote):
         logger.debug("File extension check")
@@ -81,7 +196,7 @@ class Note(object):
 
 if __name__ == '__main__':
     from s3 import S3Client
-    s3_client = S3Client('./config.yml')
+    s3_client = S3Client(os.path.join(path_this, './config.yml'))
     note = Note(s3_client)
-    note.convert('./sample/index.ipynb')
+    note.convert(os.path.join(path_this, './sample/index.ipynb'), s3_prefix='blog/index_')
 
