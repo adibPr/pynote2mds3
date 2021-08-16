@@ -7,6 +7,7 @@ import subprocess
 import shlex
 import shutil
 import re
+from urllib.parse import urlparse
 
 # third parties module
 import nbformat
@@ -52,7 +53,8 @@ class Note(object):
         img_status = []
         for i in set(img): # to prevent the same image replaced twice
             # check for web links
-            if "http" in i or "www" in i: 
+            i_parsed = urlparse(i)
+            if i_parsed.scheme or i_parsed.hostname: 
                 img_type = 'web'
             # all files in out_files are generated
             elif i.startswith (self.config['tmp_output'] + '_files'):
