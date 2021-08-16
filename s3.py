@@ -171,27 +171,3 @@ class S3Client:
         for obj in self.iter():
             fouts.append(obj)
         return fouts
-
-if __name__ == "__main__":
-    client = S3Client('config.yml')
-    fouts = client.list()
-
-    # test list
-    print("\n".join([o['Key'] for o in fouts]))
-    # print(client._get_url('image/tux.png'))
-
-    # test download
-    client.download(fouts[0]['Key'])
-
-    # test upload
-    # url = client.upload('./sample.jpeg', fout='sample.jpg', w_public=True)
-    # print(url)
-
-    # test rename
-    # rename = client.move('sample_renamed.jpg', 'sample.jpg')
-    # print(client._get_url('sample.jpg'))
-
-    # test delete
-    # deleted_file = 'sample.jpg'
-    # print("Delete {}".format(deleted_file))
-    # client.delete(deleted_file)

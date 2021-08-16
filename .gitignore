@@ -1,5 +1,5 @@
 *.sw*
 *.pyc
-config.yml
+config.ini
 sample/
 log/

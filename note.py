@@ -195,10 +195,3 @@ class Note(object):
                 "status": 1,
                 "reason": "OK" 
             }
-
-if __name__ == '__main__':
-    from s3 import S3Client
-    s3_client = S3Client(os.path.join(path_this, './config.yml'))
-    note = Note(s3_client)
-    note.convert(os.path.join(path_this, './sample/index.ipynb'), s3_prefix='blog/index_')
-
