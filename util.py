@@ -18,17 +18,5 @@ def get_logger (name):
     ch.setFormatter (formatter)
     logger.addHandler (ch)
 
-    if not os.path.isdir (LOG_FOLDER):
-        os.makedirs (LOG_FOLDER)
-
-    # create a new file everytime it's get called
-    path_log_info = os.path.join (LOG_FOLDER, name +'.info')
-    if os.path.exists (path_log_info):
-        os.remove (path_log_info)
-    fhi = logging.FileHandler (path_log_info)
-    fhi.setLevel (logging.INFO)
-    fhi.setFormatter (formatter)
-    logger.addHandler (fhi)
-
     return logger
 

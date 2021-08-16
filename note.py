@@ -27,7 +27,10 @@ class Note(object):
             # base path for referencing local image. If we have image ../../a.png,
             # the exact file will depend on the location we start the notebook. 
             # this is that location. The default will be terminal current location
-            'base_path_note': '.'
+            'base_dir': '.',
+            # whether we want to test for Hugo validity
+            'validity_check': True
+
 
     }
 
@@ -72,10 +75,13 @@ class Note(object):
     def convert(self, fnote, fmd=None, s3_prefix=''):
         logger.info('Converting {}'.format(fnote))
 
-        logger.debug('Validity check')
-        valid_status = self.test_validity(fnote)
-        if valid_status['status'] != 1:
-            raise Exception(valid_status['reason'])
+        if self.confg['validity_check']:
+            logger.debug('Validity check')
+            valid_status = self.test_validity(fnote)
+            if valid_status['status'] != 1:
+                raise Exception(valid_status['reason'])
+        else:
+            logger.debug("Skip validity check")
 
         try:
             # call nb convert command to convert
@@ -103,7 +109,7 @@ class Note(object):
                     elif i['type'] == 'generated':
                         img_path = os.path.join(self.config['tmp_dir'], i['link'])
                     else:
-                        img_path = os.path.join(self.config['base_path_note'], i['link'])
+                        img_path = os.path.join(self.config['base_dir'], i['link'])
 
                     assert os.path.isfile(img_path) is True, \
                             'File {} can\'t be found!'.format(img_path)
