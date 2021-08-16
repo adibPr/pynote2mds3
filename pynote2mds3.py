@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import argparse
+import pdb
+import logging
+
+path_this = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(path_this)
+
+from util import get_logger
+from note import Note, logger as note_logger
+from s3 import S3Client, logger as s3_logger
+from __info__ import __version__
+
+HOME = os.path.expanduser("~")
+DEFAULT_CONFIG = os.path.join(HOME, '.config/pynote2mds3/config.ini')
+logger = get_logger('pynote2mds3')
+
+def get_version():
+    return  __version__
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Convert a python notebook into markdown with image being uploaded to S3')
+    parser.add_argument('note', type=str, help='The note to be converted')
+    parser.add_argument('-c', '--config', help='Configuration path (default ~/.config/pynote2mds3/config.ini)', default=DEFAULT_CONFIG)
+    parser.add_argument('-o', '--output', help='The output markdown path, default $filename.md')
+    parser.add_argument('-v', '--version', help='Show this version', action='version', version=get_version())
+    parser.add_argument('--log-level', choices=['info', 'debug', 'none'], default='info', help='Log level of the program')
+    parser.add_argument('--prefix', type=str, default=None, help='Pprefix in the img url uploaded to s3, default: None')
+    parser.add_argument('--tmp-dir', help='Default temporary directory for process (default: .tmp)', default='.tmp')
+    parser.add_argument('--base-dir', help='Default base directory to resolve relative image reference, default: .', default='.')
+    parser.add_argument('--with-validity-check', help='Perform validity check on the notes based on Hugo format', action='store_true', dest='validity_check')
+    args = parser.parse_args()
+    return vars(args)
+
+def main():
+    args = parse_args()
+    for log in (logger, note_logger, s3_logger):
+        if args['log_level'].lower() == 'none':
+            log.handlers.clear()
+        elif args['log_level'].lower() == 'info':
+            log.setLevel(logging.INFO)
+        elif args['log_level'].lower() == 'debug':
+            log.setLevel(logging.DEBUG)
+
+    logger.debug("Log level set")
+    logger.debug("Parameter: ")
+    for key in args:
+        logger.debug("\t{}: {}".format(key, args[key]))
+
+    logger.debug("Initializing S3 and Note variable")
+    s3_client = S3Client(args['config'])
+    note = Note(s3_client, args) # we only use tmp_dir, base_dir and validity_check in here
+    note.convert(args['note'], args['output'], s3_prefix=args['prefix'])
+
+if __name__ == '__main__':
+    main()

@@ -75,7 +75,7 @@ class Note(object):
     def convert(self, fnote, fmd=None, s3_prefix=''):
         logger.info('Converting {}'.format(fnote))
 
-        if self.confg['validity_check']:
+        if self.config['validity_check']:
             logger.debug('Validity check')
             valid_status = self.test_validity(fnote)
             if valid_status['status'] != 1:
@@ -92,7 +92,7 @@ class Note(object):
                     "--output={}".format(self.config['tmp_output']),
                     "--output-dir={}".format (self.config['tmp_dir'])
                 ]
-            status = subprocess.run(cmd)
+            status = subprocess.run(cmd, capture_output=True)
             logger.debug("Return code: {}".format(status.returncode))
 
             assert status.returncode==0, "nbconvert process failed"
