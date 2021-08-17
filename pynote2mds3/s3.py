@@ -12,7 +12,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 # local module
-from util import get_logger
+from .util import get_logger
 logger = get_logger ('s3')
 
 

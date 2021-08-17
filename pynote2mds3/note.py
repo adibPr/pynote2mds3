@@ -14,7 +14,7 @@ import nbformat
 
 # local module
 path_this = os.path.abspath(os.path.dirname(__file__))
-from util import get_logger
+from .util import get_logger
 logger = get_logger ('note')
 
 

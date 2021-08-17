@@ -9,10 +9,10 @@ import logging
 path_this = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(path_this)
 
-from util import get_logger
-from note import Note, logger as note_logger
-from s3 import S3Client, logger as s3_logger
-from __info__ import __version__
+from pynote2mds3.util import get_logger
+from pynote2mds3.note import Note, logger as note_logger
+from pynote2mds3.s3 import S3Client, logger as s3_logger
+from pynote2mds3.__info__ import __version__
 
 HOME = os.path.expanduser("~")
 DEFAULT_CONFIG = os.path.join(HOME, '.config/pynote2mds3/config.ini')
@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('-o', '--output', help='The output markdown path, default $filename.md')
     parser.add_argument('-v', '--version', help='Show this version', action='version', version=get_version())
     parser.add_argument('--log-level', choices=['info', 'debug', 'none'], default='info', help='Log level of the program')
-    parser.add_argument('--prefix', type=str, default=None, help='Pprefix in the img url uploaded to s3, default: None')
+    parser.add_argument('--prefix', type=str, default='', help='Pprefix in the img url uploaded to s3, default: None')
     parser.add_argument('--tmp-dir', help='Default temporary directory for process (default: .tmp)', default='.tmp')
     parser.add_argument('--base-dir', help='Default base directory to resolve relative image reference, default: .', default='.')
     parser.add_argument('--with-validity-check', help='Perform validity check on the notes based on Hugo format', action='store_true', dest='validity_check')
