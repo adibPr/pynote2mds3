@@ -87,7 +87,7 @@ class Note(object):
             # call nb convert command to convert
             logger.debug('Calling nbconvert')
             cmd = ["jupyter-nbconvert",  
-                    shlex.quote (fnote), 
+                    fnote, 
                     "--to=markdown", 
                     "--output={}".format(self.config['tmp_output']),
                     "--output-dir={}".format (self.config['tmp_dir'])
