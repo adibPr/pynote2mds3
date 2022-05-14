@@ -27,8 +27,8 @@ class S3Client:
         logger.debug('Initiate connection')
         self.config = self._load_config(config_path)
         self.client = boto3.client("s3", 
-                    aws_access_key_id=self.config['credentials']['secret_key'],
-                    aws_secret_access_key=self.config['credentials']['access_key'],
+                    aws_access_key_id=self.config['credentials']['access_key'],
+                    aws_secret_access_key=self.config['credentials']['secret_key'],
                     endpoint_url=self.config['credentials']['endpoint_url']
                 )
         logger.debug('.. Done')
