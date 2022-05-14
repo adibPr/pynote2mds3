@@ -10,7 +10,8 @@ setup(name='pynote2mds3',
     packages=['pynote2mds3'],
     install_requires=[
         'boto3',
-        'nbformat'
+        'nbformat',
+        'appdirs'
     ],
     zip_safe=False,
     scripts=['bin/pynote2mds3']

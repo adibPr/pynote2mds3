@@ -6,6 +6,8 @@ import argparse
 import pdb
 import logging
 
+from appdirs import AppDirs
+
 path_this = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(path_this)
 
@@ -14,8 +16,9 @@ from pynote2mds3.note import Note, logger as note_logger
 from pynote2mds3.s3 import S3Client, logger as s3_logger
 from pynote2mds3.__info__ import __version__
 
-HOME = os.path.expanduser("~")
-DEFAULT_CONFIG = os.path.join(HOME, '.config/pynote2mds3/config.ini')
+
+APPDIR = AppDirs("pynote2mds3", "adib")
+DEFAULT_CONFIG = os.path.join(APPDIR.user_config_dir, 'config.ini')
 logger = get_logger('pynote2mds3')
 
 def get_version():
