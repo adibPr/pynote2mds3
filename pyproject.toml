@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pynote2mds3"
+version = "0.2"
+description = "Convert a python notebook into markdown with image being uploaded to S3"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "Adib Pratama", email = "pratama.adib@gmail.com"},
+]
+urls = {Homepage = "http://github.com/adibPr/pynote2mds3"}
+dependencies = [
+    "boto3",
+    "nbformat",
+    "appdirs",
+]
+
+[project.scripts]
+pynote2mds3 = "pynote2mds3:main"
+
+[tool.setuptools]
+packages = ["pynote2mds3"]

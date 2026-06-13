@@ -6,6 +6,7 @@ import configparser
 import ntpath
 from urllib import parse
 import re
+from typing import Generator
 
 # third parties module
 import boto3
@@ -23,7 +24,7 @@ class S3Client:
         fin: file name "in" here, i.e local machine.
     """
 
-    def __init__(self, config_path):
+    def __init__(self, config_path) -> None:
         logger.debug('Initiate connection')
         self.config = self._load_config(config_path)
         self.client = boto3.client("s3", 
@@ -33,12 +34,12 @@ class S3Client:
                 )
         logger.debug('.. Done')
 
-    def _load_config(self, config_path):
+    def _load_config(self, config_path) -> configparser.ConfigParser:
         config = configparser.ConfigParser()
         config.read(config_path)
         return config
     
-    def _get_encrypt_param(self, enabled=False):
+    def _get_encrypt_param(self, enabled: bool = False) -> dict:
         if enabled:
             encrypt_args = {
                     "SSECustomerKey": self.config['encryption']['key'],
@@ -48,7 +49,7 @@ class S3Client:
             encrypt_args = {}
         return encrypt_args
 
-    def _get_url(self, fout):
+    def _get_url(self, fout: str) -> str:
         # adding bucket name before host name
         addr = re.sub(
                     r"https\://", 
@@ -58,7 +59,7 @@ class S3Client:
         return parse.urljoin(addr, parse.quote(fout))
 
 
-    def upload(self, fin, fout=None, w_encrypt=False, w_public=False):
+    def upload(self, fin: str, fout: str | None = None, w_encrypt: bool = False, w_public: bool = False) -> str:
         logger.info('Uploading {}'.format(fin))
 
         encrypt_args = self._get_encrypt_param(w_encrypt)
@@ -90,7 +91,7 @@ class S3Client:
         logger.info('.. Done')
         return self._get_url(fout)
 
-    def download(self, fout, fin=None, w_encrypt=False):
+    def download(self, fout: str, fin: str | None = None, w_encrypt: bool = False) -> None:
         logger.info('Downloading {}'.format(fout))
 
         encrypt_args = self._get_encrypt_param(w_encrypt)
@@ -115,7 +116,7 @@ class S3Client:
 
         logger.info('.. Done')
 
-    def delete(self, fout):
+    def delete(self, fout: str) -> None:
         logger.info('Deleting {}'.format(fout))
         try:
             self.client.delete_object(
@@ -132,7 +133,7 @@ class S3Client:
         logger.info('.. Done')
 
 
-    def move(self, fout_src, fout_tgt):
+    def move(self, fout_src: str, fout_tgt: str) -> None:
         logger.info('Moving {} to {}'.format(fout_src, fout_tgt))
 
         # we can't rename an object, so we have to copy and delete the old one
@@ -158,7 +159,7 @@ class S3Client:
 
         logger.info('.. Done')
 
-    def iter(self, pattern=None):
+    def iter(self, pattern: str | None = None) -> Generator[dict, None, None]:
         response = self.client.list_objects_v2(Bucket=self.config['credentials']['bucket'])
         assert response['ResponseMetadata']['HTTPStatusCode'] == 200,\
                 'List object failed, {}'.format(response)
@@ -166,7 +167,7 @@ class S3Client:
         for obj in response.get('Contents', []):
             yield obj
 
-    def list(self, pattern=None):
+    def list(self, pattern: str | None = None) -> list[dict]:
         fouts = []
         for obj in self.iter():
             fouts.append(obj)
