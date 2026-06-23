@@ -16,6 +16,7 @@ urls = {Homepage = "http://github.com/adibPr/pynote2mds3"}
 dependencies = [
     "boto3",
     "nbformat",
+    "nbconvert",
     "appdirs",
 ]
 
