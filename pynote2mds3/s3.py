@@ -75,11 +75,14 @@ class S3Client:
             fout = tail or ntpath.basename(head)
 
         try:
-            response = self.client.upload_file(
-                Filename=fin,
+            with open(fin, 'rb') as f:
+                body = f.read()
+            response = self.client.put_object(
                 Bucket=self.config['credentials']['bucket'],
                 Key=fout,
-                ExtraArgs = {**encrypt_args, 'ACL': ACL}
+                Body=body,
+                ContentLength=len(body),
+                **{**encrypt_args, 'ACL': ACL}
             )
         except ClientError as e:
             logger.error('Failed!')
