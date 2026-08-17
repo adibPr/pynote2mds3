@@ -10,6 +10,7 @@ from typing import Generator
 
 # third parties module
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 # local module
@@ -27,10 +28,16 @@ class S3Client:
     def __init__(self, config_path) -> None:
         logger.debug('Initiate connection')
         self.config = self._load_config(config_path)
+        os.environ['AWS_REQUEST_CHECKSUM_CALCULATION'] = 'when_required'
+        os.environ['AWS_RESPONSE_CHECKSUM_VALIDATION'] = 'when_required'
         self.client = boto3.client("s3", 
                     aws_access_key_id=self.config['credentials']['access_key'],
                     aws_secret_access_key=self.config['credentials']['secret_key'],
-                    endpoint_url=self.config['credentials']['endpoint_url']
+                    endpoint_url=self.config['credentials']['endpoint_url'],
+                    config=Config(
+                        request_checksum_calculation='when_required',
+                        response_checksum_validation='when_required'
+                    )
                 )
         logger.debug('.. Done')
 
